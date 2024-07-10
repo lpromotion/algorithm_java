@@ -12,14 +12,14 @@ class Solution {
             bridge.offer(0);
         }
 
-				// 모든 트럭이 다리에 진입할 때까지 반복
+	// 모든 트럭이 다리에 진입할 때까지 반복
         while (truckIndex < truck_weights.length) {
             answer ++;
             
             // 다리를 완전히 건넌 트럭 제거 & 무게 계산
             currentWeight -= bridge.poll(); 
 
-						// 다리에 올라가는 조건
+	    // 다리에 올라가는 조건
             if (currentWeight + truck_weights[truckIndex] <= weight) {
                 bridge.offer(truck_weights[truckIndex]);
                 currentWeight += truck_weights[truckIndex];
