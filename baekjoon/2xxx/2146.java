@@ -2,13 +2,11 @@ import java.io.*;
 import java.util.*;
 
 public class Main {
-    static int n; // 지도의 크기
-    static int[][] map; // 지도 정보 저장
-    static int[][] ground; // 육지 정보 저장
-    static int[][] dis; // 거리 정보 저장
-    static int minDis = Integer.MAX_VALUE; // 가장 짧은 다리 길이
+    static int n; // 나라의 크기
+    static int[][] map; // 주어진 맵 정보 저장
+    static boolean[][] visited; // 방문 처리 배열
+    static int minLen = Integer.MAX_VALUE; // 다리 최소 길이
 
-    // 상하좌우
     static int[] dx = {-1, 1, 0, 0};
     static int[] dy = {0, 0, -1, 1};
 
@@ -16,55 +14,53 @@ public class Main {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         n = Integer.parseInt(br.readLine());
         map = new int[n][n];
-        ground = new int[n][n];
-        dis = new int[n][n];
-        // 지도 정보 입력 및 초기화
-        for(int i=0; i<n; i++) {
+        visited = new boolean[n][n];
+
+        for(int i=0; i<n; i++) { // 주어진 맴 정보 입력받고 저장
             StringTokenizer st = new StringTokenizer(br.readLine());
             for(int j=0; j<n; j++) {
                 map[i][j] = Integer.parseInt(st.nextToken());
-                dis[i][j] = -1; // 거리 정보를 -1로 초기화
             }
         }
 
-        int num = 1; // 섬 번호
-        // 지도를 순회하며 섬을 찾고 번호 부여
+        int num = 0; // 섬 구분할 번호
         for(int i=0; i<n; i++) {
             for(int j=0; j<n; j++) {
-                if(map[i][j]==1) { // 육지일 경우
-                    bfs1(i, j, num++); // BFS를 통해 섬 구분
+                if(map[i][j] != 0 && !visited[i][j]) {
+                    bfs1(i, j, ++num);
                 }
             }
         }
 
-        // 각 섬에서 다른 섬까지의 최소 다리 길이 계산
         for(int i=0; i<n; i++) {
             for(int j=0; j<n; j++) {
-                // 육지이고 아직 방문하지 않은 경우
-                if(ground[i][j]>0 && dis[i][j]==-1) {
-                    bfs2(i, j, ground[i][j]); // BFS를 통해 다리 길이 계산
+                if(map[i][j] != 0) {
+                    visited = new boolean[n][n];
+                    bfs2(i, j, map[i][j]);
                 }
             }
         }
 
-        System.out.println(minDis);
+        System.out.println(minLen);
     }
 
     static void bfs1(int x, int y, int num) {
         Queue<int[]> q = new ArrayDeque<>();
-        q.add(new int[]{x, y});
-        map[x][y] = 0; // 현재 위치 방문 처리
-        ground[x][y] = num; // 현재 위치에 섬 번호 부여
+        q.add(new int[]{x, y}); // 시작위치 큐에 추가
+        map[x][y] = num; // 섬 번호 부여
+        visited[x][y] = true; // 방문 처리
+
         while(!q.isEmpty()) {
             int[] c = q.poll();
-            for(int i=0; i<4; i++) { // 상하좌우 탐색
-                int nx = c[0] + dx[i];
-                int ny = c[1] + dy[i];
-                // 지도 범위 내에 있고, 육지인 경우
-                if(nx>=0 && nx<n && ny>=0 && ny<n && map[nx][ny]==1) {
-                    map[nx][ny] = 0; // 방문 처리
-                    ground[nx][ny] = num; // 섬 번호 부여
-                    q.add(new int[]{nx, ny}); // 다음 위치 큐에 추가
+
+            for(int i=0; i<4; i++) { // 동서남북 탐색
+                int nx = dx[i] + c[0];
+                int ny = dy[i] + c[1];
+                if(nx>=0 && nx<n && ny>=0 && ny<n) { // 맵 범위에 속하는 경우
+                    if(map[nx][ny] == 0 || visited[nx][ny]) continue; // 바다이거나 방문한 경우 패스
+                    map[nx][ny] = num; // 섬 번호 부여
+                    visited[nx][ny] = true; // 방문 처리
+                    q.add(new int[]{nx, ny}); // 큐에 추가
                 }
             }
         }
@@ -72,31 +68,30 @@ public class Main {
 
     static void bfs2(int x, int y, int num) {
         Queue<int[]> q = new ArrayDeque<>();
-        q.add(new int[]{x, y});
-        dis[x][y] = 0; // 시작 위치의 거리 0으로 초기화
+        q.add(new int[]{x, y, 0}); // 시작위치, 거리
+        visited[x][y] = true; // 방문 처리
+
         while(!q.isEmpty()) {
             int[] c = q.poll();
-            for(int i=0; i<4; i++) { // 상하좌우 탐색
-                int nx = c[0] + dx[i];
-                int ny = c[1] + dy[i];
-                // 다음 위치가 지도 범위 내에 있는 경우
+
+            // 현재 경로가 이미 최소 거리보다 길 경우 패스
+            if(minLen < c[2]-1) return;
+
+            // 바다가 아니고, 다른 섬에 도달한 경우
+            if(map[c[0]][c[1]] != 0 && map[c[0]][c[1]] != num) {
+                minLen = Math.min(minLen, c[2]-1); // 최솟값 갱신
+            }
+
+            for(int i=0; i<4; i++) { // 동서남북 탐색
+                int nx = dx[i] + c[0];
+                int ny = dy[i] + c[1];
+
+                // 맵 범위에 속하고, 방문하지 않은 경우
                 if(nx>=0 && nx<n && ny>=0 && ny<n) {
-                    // 1. 같은 육지이면 패스
-                    if(ground[nx][ny]==num) continue;
-                    // 2. 바다이고, 아직 방문하지 않은 경우
-                    if(ground[nx][ny]==0 && dis[nx][ny]==-1){
-                        dis[nx][ny] = dis[c[0]][c[1]] + 1; // 거리 계산 & 방문 처리
-                        q.add(new int[]{nx, ny}); // 다음 위치 큐에 추가
-                    }
-                    // 3. 바다이고, 이미 방문한 경우 (더 짧은 경로로 도달할 수 있을 경우)
-                    else if(ground[nx][ny]==0 && dis[nx][ny] > dis[c[0]][c[1]]+1){
-                        dis[nx][ny] = dis[c[0]][c[1]] + 1; // 거리 계산 & 방문 처리
-                        q.add(new int[]{nx, ny}); // 다음 위치 큐에 추가
-                    }
-                    // 4. 다른 육지인 경우
-                    if(ground[nx][ny]!=num && ground[nx][ny]>0) {
-                        int length = dis[c[0]][c[1]]; // 현재 위치까지의 거리
-                        minDis = Math.min(length, minDis); // 최소 다리 길이 계산
+                    if(map[nx][ny] == num) continue; // 같은 섬이면 패스
+                    if(!visited[nx][ny]) {
+                        q.add(new int[]{nx, ny, c[2] + 1}); // 거리 1 증가시켜 큐에 추가
+                        visited[nx][ny] = true;
                     }
                 }
             }
